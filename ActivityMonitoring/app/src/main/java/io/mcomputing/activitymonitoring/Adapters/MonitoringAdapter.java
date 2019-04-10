@@ -1,22 +1,27 @@
 package io.mcomputing.activitymonitoring.Adapters;
 
 import android.content.Context;
-import android.support.annotation.NonNull;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ArrayAdapter;
 import android.widget.BaseAdapter;
+import android.widget.TextView;
 
 import java.util.List;
 
-import io.mcomputing.activitymonitoring.Models.MonitoringModel;
+import io.mcomputing.activitymonitoring.Models.ActivityListModel;
+import io.mcomputing.activitymonitoring.Models.ActivityModel;
+import io.mcomputing.activitymonitoring.R;
 
 public class MonitoringAdapter extends BaseAdapter {
-	private final List<MonitoringModel> values;
+	private final List<ActivityListModel> values;
+	private final LayoutInflater inflater;
 
-	public MonitoringAdapter(List<MonitoringModel> sensorData){
+	public MonitoringAdapter(Context context, List<ActivityListModel> sensorData){
 		values = sensorData;
+		inflater = (LayoutInflater.from(context));
 	}
+
 
 	@Override
 	public int getCount() {
@@ -35,6 +40,18 @@ public class MonitoringAdapter extends BaseAdapter {
 
 	@Override
 	public View getView(int position, View convertView, ViewGroup parent) {
-		return null;
+		ActivityListModel monitoringModel = values.get(position);
+		if(convertView == null){
+			convertView = inflater.inflate(R.layout.monitoring_adapter_layout, null);
+		}
+
+
+		TextView currentProbability = convertView.findViewById(R.id.am_current_probability);
+		TextView amActivity = convertView.findViewById(R.id.am_activity);
+
+		amActivity.setText(monitoringModel.getName());
+		currentProbability.setText(monitoringModel.getValue()); // TODO
+
+		return convertView;
 	}
 }
