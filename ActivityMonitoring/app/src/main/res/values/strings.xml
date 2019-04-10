@@ -1,3 +1,7 @@
 <resources>
     <string name="app_name">ActivityMonitoring</string>
+    <string name="monitoring_value">Current Probabiliry:</string>
+    <string name="monitoring_activities">Monitoring Activities</string>
+    <string name="sensor_data">Sensor Data</string>
+    <string name="activity_probability">Activity Probability</string>
 </resources>
