@@ -20,12 +20,10 @@ public abstract class SensorDataAdapter extends RecyclerView.Adapter<SensorDataA
 	private final LayoutInflater inflater;
 	private List<ActivityModel> _values;
 	private Context _context;
-	private Long _timeStamp;
 	private static final int WAIT_TIME = 1;
 	public SensorDataAdapter(Context context, List<ActivityModel> values){
 		_context = context;
 		_values = values;
-		_timeStamp = System.currentTimeMillis();
 		inflater = (LayoutInflater.from(context));
 	}
 
@@ -37,15 +35,22 @@ public abstract class SensorDataAdapter extends RecyclerView.Adapter<SensorDataA
 	}
 
 	public void updateItem(Long id, String value, boolean isInstant){
-
-		if(((System.currentTimeMillis() - _timeStamp)/1000) > WAIT_TIME || isInstant) {
-			_timeStamp = System.currentTimeMillis();
-			for (int i = 0; i < _values.size(); i++) {
-				if (_values.get(i).getId().equals(id)) {
-					_values.get(i).setValue(value);
-					notifyItemChanged(i);
-				}
+		int position = 0;
+		ActivityModel searchModel  = null;
+		for(ActivityModel model: _values){
+			if(model.getId().equals(id)){
+				searchModel = model;
+				break;
 			}
+			position++;
+		}
+		if(searchModel == null)
+			return;
+
+		if(((System.currentTimeMillis() - searchModel.getTimeStamp())/1000) > WAIT_TIME || isInstant) {
+			_values.get(position).setValue(value);
+			_values.get(position).setTimeStamp(System.currentTimeMillis());
+			notifyItemChanged(position);
 		}
 	}
 

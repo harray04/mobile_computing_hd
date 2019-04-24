@@ -38,6 +38,11 @@ public class ChartModel {
 			_value = new ArrayList<>();
 		_value.add(entry);
 	}
+
+	public void resetValue(){
+		if(_value != null)
+			_value.clear();
+	}
 	public ChartModel(Long sensor_id,String label, List<Entry> value, int color, int cirecleColor){
 		_sensor_id = sensor_id;
 		_label = label;

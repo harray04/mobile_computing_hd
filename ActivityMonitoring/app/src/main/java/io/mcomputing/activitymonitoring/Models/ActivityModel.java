@@ -2,6 +2,11 @@ package io.mcomputing.activitymonitoring.Models;
 
 import android.graphics.Color;
 
+import com.google.gson.annotations.Expose;
+import com.google.gson.annotations.SerializedName;
+
+import io.mcomputing.activitymonitoring.UtilsManager;
+
 public class ActivityModel {
 	private Long _id;
 	private String _name;
@@ -9,9 +14,18 @@ public class ActivityModel {
 	private int _backgroundColorActive;
 	private int _backgroundColorInActive;
 	private boolean _isVisible;
+	private Long _timeStamp;
 
 	public void setBackgroundColorActive(int backgroundColor) {
 		this._backgroundColorActive = backgroundColor;
+	}
+
+	public void setTimeStamp(Long timeStamp) {
+		this._timeStamp = timeStamp;
+	}
+
+	public Long getTimeStamp() {
+		return _timeStamp;
 	}
 
 	public int getBackgroundColorActive() {
@@ -52,12 +66,13 @@ public class ActivityModel {
 
 
 
-	public ActivityModel(Long id, String name, String value, int activeColor, int inActiveColor){
-		_id = id;
+	public ActivityModel(String name, String value, int activeColor, int inActiveColor){
+		_id = UtilsManager.stringToLong(name);
 		_name = name;
 		_value = value;
 		_backgroundColorActive = activeColor;
 		_backgroundColorInActive = inActiveColor;
+		_timeStamp = System.currentTimeMillis();
 	}
 }
 
