@@ -26,3 +26,4 @@ credo.json
 google-services.json
 /FirebasePython/env/*
 serviceAccountKey.json
+/ActivityMonitoring/.idea/*
