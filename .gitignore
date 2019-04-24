@@ -25,3 +25,4 @@ hs_err_pid*
 credo.json
 google-services.json
 /FirebasePython/env/*
+serviceAccountKey.json
