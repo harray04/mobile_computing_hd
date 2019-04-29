@@ -10,6 +10,7 @@ import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.annotation.NonNull;
+import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.Fragment;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -17,20 +18,31 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.EditText;
+import android.widget.TextView;
+import android.widget.Toast;
 
 import com.github.mikephil.charting.charts.LineChart;
 import com.github.mikephil.charting.components.XAxis;
 import com.github.mikephil.charting.data.Entry;
 import com.github.mikephil.charting.data.LineData;
 import com.github.mikephil.charting.data.LineDataSet;
+import com.github.mikephil.charting.formatter.ValueFormatter;
 import com.github.mikephil.charting.interfaces.datasets.ILineDataSet;
 import com.google.firebase.storage.UploadTask;
+import com.loopj.android.http.AsyncHttpResponseHandler;
+import com.loopj.android.http.JsonHttpResponseHandler;
+
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
+import cz.msebera.android.httpclient.Header;
 import io.mcomputing.activitymonitoring.Adapters.SensorDataAdapter;
+import io.mcomputing.activitymonitoring.JSONAsyncTask;
 import io.mcomputing.activitymonitoring.Models.ActivityModel;
 import io.mcomputing.activitymonitoring.Models.ChartModel;
 import io.mcomputing.activitymonitoring.R;
@@ -39,6 +51,8 @@ import io.mcomputing.activitymonitoring.UtilsManager;
 public class MonitoringFragment extends Fragment implements SensorEventListener {
 	public static final String TAG = "MonitoringFragment";
 	public static final int MAX_VISIBLE_VALUE_COUNT = 3;
+	private static final int MAX_ACTIVITY_COUNT = 3;
+	private static final int MAX_MONITORING_TIME = 2; // in minutes
 	private LineChart multiLineChart;
 	private SensorManager mSensorManager;
 	//private Sensor mSensorProximity;
@@ -46,6 +60,7 @@ public class MonitoringFragment extends Fragment implements SensorEventListener 
 	//private Sensor mGyroScope;
 	private Activity activity;
 	private float thresHold = 0;
+	private int activityCount = 0;
 	private View view;
 	private RecyclerView gridView;
 	private float timeStamp = 0;
@@ -54,6 +69,14 @@ public class MonitoringFragment extends Fragment implements SensorEventListener 
 	private List<ChartModel> chartModels = new ArrayList<>();
 	private long initialTimeStamp = 0;
 	private List<ActivityModel> activityModels = new ArrayList<>();
+	private TextView indicator;
+	private EditText nameEditText;
+	private int monitoringState = 0;
+	private TextView activityBtn;
+	private List<String> activityNames = new ArrayList<>();
+
+	private Object lock = new Object();
+	private FloatingActionButton nextBtn;
 
 	@Override
 	public View onCreateView(@NonNull LayoutInflater inflater,
@@ -62,12 +85,108 @@ public class MonitoringFragment extends Fragment implements SensorEventListener 
 
 		view = inflater.inflate(R.layout.monitoring_layout, null);
 		multiLineChart = view.findViewById(R.id.am_multiline_chart);
+		nextBtn = (FloatingActionButton)view.findViewById(R.id.show_probability);
 		activity = getActivity();
 		//initSensors();
-
+		checkHasProb();
+		setActivityActions();
 		initChart();
 		setTimeOutHandler();
 		return view;
+	}
+
+	private void checkHasProb(){
+
+		JSONAsyncTask.hasProb(new JsonHttpResponseHandler(){
+			@Override
+			public void onSuccess(int statusCode, Header[] headers, JSONObject response) {
+				// If the response is JSONObject instead of expected JSONArray
+				Log.d("RESPONSEBODY", "success:" + response);
+				nextBtn.setVisibility(View.GONE);
+				try {
+					boolean success = (boolean) response.getBoolean("success");
+					if(success)
+						nextBtn.setVisibility(View.VISIBLE);
+
+				} catch (JSONException e) {
+					e.printStackTrace();
+				}
+
+			}
+
+			@Override
+			public void onFailure(int statusCode, Header[] headers, Throwable throwable,
+								  JSONObject errorResponse){
+				// Pull out the first event on the public timeline
+				Log.d("RESPONSEBODY", "error:" + errorResponse);
+			}
+
+			@Override
+			public void onFailure(int statusCode, Header[] headers, String responseString, Throwable throwable) {
+				Log.d("RESPONSEBODY", "error1:" + responseString);
+			}
+		});
+	}
+
+	private void setActivityActions(){
+		indicator = (TextView)view.findViewById(R.id.activity_indicator);
+		nameEditText = (EditText)view.findViewById(R.id.activity_name);
+		activityBtn = (TextView)view.findViewById(R.id.activity_btn);
+		activityBtn.setOnClickListener(new View.OnClickListener() {
+			@Override
+			public void onClick(View v) {
+				finiteStateMachine();
+			}
+		});
+
+	}
+
+	private void finiteStateMachine(){
+		String name = nameEditText.getText().toString();
+		String activityBtnName = getString(R.string.error);
+		boolean editTextEnabled = true;
+		int internActivityCount = 1;
+		switch (monitoringState){
+			case 0:
+				if(activityCount < 4 && !name.isEmpty()) {
+					activityNames.add(name);
+					editTextEnabled = false;
+					activityBtnName = getString(R.string.stop);
+					activityBtn.setText(R.string.stop);
+					resetChart();
+					activityCount++;
+					monitoringState = 1;
+				}
+
+				if(name.isEmpty()){
+					Toast.makeText(activity, "You have to insert a Name.", Toast.LENGTH_SHORT).show();
+				}
+
+				break;
+			case 1:
+				resetChart();
+				activityCount--;
+				editTextEnabled = true;
+				activityBtnName = getString(R.string.start);
+				activityNames.remove(activityNames.size() - 1);
+				monitoringState = 0;
+				break;
+			case 2:
+				activityCount = 0;
+				editTextEnabled = true;
+				activityBtnName = getString(R.string.start);
+				activityNames.clear();
+				monitoringState = 0;
+				break;
+		}
+
+		if(activityCount == 0)
+			internActivityCount = 1;
+		else
+			internActivityCount = activityCount;
+		nameEditText.setEnabled(editTextEnabled);
+		activityBtn.setText(activityBtnName);
+		indicator.setText(String.valueOf(internActivityCount));
 	}
 
 	private void setTimeOutHandler(){
@@ -82,10 +201,10 @@ public class MonitoringFragment extends Fragment implements SensorEventListener 
 							public void run() {
 								setTimeOutHandler();
 							}
-						}, 100);
+						}, 500);
 					}
 				},
-				100);
+				500);
 	}
 
 	private int getChartModelPosition(Long id){
@@ -154,6 +273,11 @@ public class MonitoringFragment extends Fragment implements SensorEventListener 
 					}
 				};
 				gridView.setAdapter(sensorAdapter);
+
+				if (mAcceleroMeter != null) {
+					mSensorManager.registerListener(this, mAcceleroMeter,
+							SensorManager.SENSOR_DELAY_NORMAL);
+				}
 				return chartModels;
 			}
 		}
@@ -183,6 +307,7 @@ public class MonitoringFragment extends Fragment implements SensorEventListener 
 		List<ILineDataSet> lineDataSets = new ArrayList<>();
 		for (ChartModel chartModel: chartModels) {
 			LineDataSet lineDataSet = new LineDataSet(chartModel.getValue(), chartModel.getLabel());
+			lineDataSet.setDrawCircles(false);
 			lineDataSet.setColor(chartModel.getColor());
 			lineDataSet.setCircleColor(chartModel.getCircleColor());
 			lineDataSet.setVisible(chartModel.isVisible());
@@ -191,6 +316,30 @@ public class MonitoringFragment extends Fragment implements SensorEventListener 
 		LineData lineData = new LineData(lineDataSets);
 		multiLineChart.setData(lineData);
 		multiLineChart.invalidate();
+	}
+
+	private String numberToTime(float value){
+		int absValue = (int)Math.floor(value);
+
+		int seconds = (int)((value - absValue) * 60.f);
+
+		float hoursAndMinutes = absValue / 60.f;
+		int hours = (int)Math.floor(hoursAndMinutes);
+
+
+		int minutes = (int)((hoursAndMinutes - hours) * 60.f);
+
+		String time;
+		if(hours != 0){
+			time = String.valueOf(hours) + 'h' + String.valueOf(minutes) + 'm' + String.valueOf(seconds) + 's';
+		}else if(minutes != 0){
+			time = String.valueOf(minutes) + 'm' + String.valueOf(seconds) + 's';
+		}else{
+			time = String.valueOf(seconds) + 's';
+		}
+
+		return time;
+
 	}
 
 	private void initChart(){
@@ -212,9 +361,17 @@ public class MonitoringFragment extends Fragment implements SensorEventListener 
 		xAxis.setAxisLineWidth(2);
 		xAxis.setTextSize(12f);
 		xAxis.setTextColor(Color.BLACK);
+		xAxis.setAxisMinimum(0);
 		//xAxis.setLabelCount(x_axis.length,true);
 		xAxis.setGranularity(1f);
-		xAxis.setAxisMaximum(10);
+		xAxis.setAxisMaximum(MAX_MONITORING_TIME);
+		xAxis.setLabelCount(7, true);
+		xAxis.setValueFormatter(new ValueFormatter() {
+			@Override
+			public String getFormattedValue(float value) {
+				return numberToTime(value);
+			}
+		});
 		/*xAxis.setValueFormatter(new ValueFormatter() {
 			@Override
 			public String getFormattedValue(float value) {
@@ -236,16 +393,11 @@ public class MonitoringFragment extends Fragment implements SensorEventListener 
 	public void onStart() {
 		super.onStart();
 		Log.d("SENSORMANAGER", "register");
-		resetAndSaveChart(true);
+		//resetChart();
 		/*if (mSensorProximity != null) {
 			mSensorManager.registerListener(this, mSensorProximity,
 					SensorManager.SENSOR_DELAY_NORMAL);
 		}*/
-
-		if (mAcceleroMeter != null) {
-			mSensorManager.registerListener(this, mAcceleroMeter,
-					SensorManager.SENSOR_DELAY_NORMAL);
-		}
 
 		/*if (mGyroScope != null) {
 			mSensorManager.registerListener(this, mGyroScope,
@@ -256,16 +408,21 @@ public class MonitoringFragment extends Fragment implements SensorEventListener 
 	@Override
 	public void onStop() {
 		super.onStop();
+	}
+
+	@Override
+	public void onDestroy(){
+		super.onDestroy();
 		mSensorManager.unregisterListener(this);
 	}
 
 	@Override
 	public void onSensorChanged(SensorEvent event) {
 		int sensorType = event.sensor.getType();
-		timeStamp = (System.currentTimeMillis() - initialTimeStamp)/1000.f;
+		timeStamp = (System.currentTimeMillis() - initialTimeStamp)/(1000.f * 60.f); // in minutes
 
 
-			resetAndSaveChart(false);
+			resetAndSaveChart();
 			switch (sensorType) {
 				// Event came from the light sensor.
 				/*case Sensor.TYPE_PROXIMITY:
@@ -351,17 +508,30 @@ public class MonitoringFragment extends Fragment implements SensorEventListener 
 		return stringList;
 	}
 
-	private void resetAndSaveChart(boolean isStart){
-		if(timeStamp >= 10 || isStart){
-			initialTimeStamp = System.currentTimeMillis();
-			timeStamp = 0;
-			UtilsManager.writeFile(activity, "hier.csv", createCSVStringList());
-			for(ChartModel chartModel: chartModels){
-				Log.d("SAMPLESCOUNT", "c:" + chartModel.getValue().size());
-				chartModel.resetValue();
-			}
-			// save values;
+	private void resetChart(){
+		initialTimeStamp = System.currentTimeMillis();
+		timeStamp = 0;
+		for(ChartModel chartModel: chartModels){
+			Log.d("SIZESIZE", "s:" + chartModel.getValue().size());
+			chartModel.resetValue();
+		}
+	}
 
+	private void resetAndSaveChart(){
+		if(timeStamp >= MAX_MONITORING_TIME){
+			if(activityCount < MAX_ACTIVITY_COUNT) {
+				UtilsManager.writeFile(activity, (activityCount - 1) + ".csv", createCSVStringList());
+				activityBtn.setText(R.string.start);
+				nameEditText.setEnabled(true);
+				monitoringState = 0;
+			}else if(activityCount == MAX_ACTIVITY_COUNT) {
+				UtilsManager.writeFile(activity, (activityCount - 1) + ".csv", createCSVStringList());
+				nameEditText.setEnabled(false);
+				activityBtn.setText(R.string.reset);
+				monitoringState = 2;
+			}
+
+			resetChart();
 		}
 	}
 

@@ -76,7 +76,7 @@ public class UtilsManager {
 				fOutStream.flush();
 			}
 			Log.d("RESPONSE", "4");
-			uploadFile(context, path);
+			uploadFile(context, path, title);
 
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
@@ -98,13 +98,13 @@ public class UtilsManager {
 
 	}
 
-	private static void uploadFile(Context context, String title){
+	private static void uploadFile(Context context, String path, String title){
 		FirebaseStorage storage = FirebaseStorage.getInstance(context.getString(R.string.firebase_storage));
 		StorageReference storageRef = storage.getReference();
-		StorageReference activityRef = storageRef.child("activity");
+		StorageReference activityRef = storageRef.child(title);
 		DataInputStream dataInputStream = null;
 		try {
-			dataInputStream = new DataInputStream(new FileInputStream(title));
+			dataInputStream = new DataInputStream(new FileInputStream(path));
 			UploadTask uploadTask = activityRef.putStream(dataInputStream);
 			uploadTask.addOnFailureListener(new OnFailureListener() {
 				@Override

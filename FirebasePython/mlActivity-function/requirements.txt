@@ -1,0 +1,6 @@
+firebase_admin
+feature
+google.cloud
+flask
+knn
+os

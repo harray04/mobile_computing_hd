@@ -7,13 +7,12 @@ import math
 from scipy.fftpack import *
 import scipy
 
-
 def plot_m(m):
     plt.plot(m)
     plt.show()
 
 def smoothen_values(fileName):
-    x, y, z = np.loadtxt(fileName, delimiter =',', unpack =True)
+    x, y, z, ty = np.loadtxt(fileName, delimiter =',', unpack =True)
     mpre = x*x+y*y+z*z
     m = np.sqrt(mpre)
     m_smooth = np.zeros(len(m))
@@ -70,14 +69,24 @@ def smooth_plot(m):
     plt.title('Walking')
     plt.show()
 
-def write_to_file(srcFileName, featureType=0):
+def normalize_features(m):
+    energy_signal = calc_energy(m)
+    valmean, valmax, valmin, valstd, valenergy = feature(m)
+
+    valmean_nor = ((valmean) - min(valmean))/(max(valmean) - min(valmean))
+    valmax_nor = ((valmax) - min(valmax))/(max(valmax) - min(valmax))
+    valmin_nor = ((valmin) - min(valmin))/(max(valmin) - min(valmin))
+    valstd_nor = ((valstd) - min(valstd))/(max(valstd) - min(valstd))
+    valenergy_nor = ((valenergy) - min(valenergy))/(max(valenergy) - min(valenergy))
+    energy_signal_nor = ((energy_signal) - min(energy_signal))/(max(energy_signal) - min(energy_signal))
+
+    return valmean_nor, valmax_nor, valmin_nor, valstd_nor, valenergy_nor, energy_signal_nor
+def write_to_file(srcFileName, ty):
     m = smoothen_values(srcFileName)
     #smooth_plot(m)
-    energy_signal = calc_energy(m)
-   
-    valmean ,valmax,valmin,valstd,valenergy= feature(m)
-
+    
+    valmean, valmax, valmin, valstd, valenergy, energy_signal = normalize_features(m)
     for i ,val in enumerate(valmean):
         saveFile = open ('./features_final.csv','a')
-        saveFile.write(str(valmean[i]) + ',' +str(valmax[i]) + ',' + str(valmin[i]) + ',' + str(valstd[i]) + ',' + str(valenergy[i])+','+ str(energy_signal[i]) + ',' + str(featureType) )
+        saveFile.write(str(valmean[i]) + ',' +str(valmax[i]) + ',' + str(valmin[i]) + ',' + str(valstd[i]) + ',' + str(valenergy[i])+','+ str(energy_signal[i]) + ',' + str(ty) )
         saveFile.write('\n')
