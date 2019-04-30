@@ -53,6 +53,8 @@ public class UtilsManager {
 		DataOutputStream fOutStream = null;
 		String newLine = System.getProperty("line.separator");
 		String path = context.getFilesDir().getPath() + '/' + title;
+		Log.d("UPLOADFILE", "before PATH: "+path);
+
 		File newFile = new File(path);
 		Log.d("RESPONSE", "1");
 
@@ -76,7 +78,7 @@ public class UtilsManager {
 				fOutStream.flush();
 			}
 			Log.d("RESPONSE", "4");
-			uploadFile(context, path, title);
+			uploadFile(context, path, title	);
 
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
@@ -102,26 +104,33 @@ public class UtilsManager {
 		FirebaseStorage storage = FirebaseStorage.getInstance(context.getString(R.string.firebase_storage));
 		StorageReference storageRef = storage.getReference();
 		StorageReference activityRef = storageRef.child(title);
+
 		DataInputStream dataInputStream = null;
 		try {
+			Log.d("UPLOADFILE", "betweem Path: "+ path);
 			dataInputStream = new DataInputStream(new FileInputStream(path));
 			UploadTask uploadTask = activityRef.putStream(dataInputStream);
+
+			Log.d("UPLOADFILE", "Path: "+activityRef.getPath());
+			Log.d("UPLOADFILE", "Name: "+activityRef.getName());
+			Log.d("UPLOADFILE", "Bucket: "+activityRef.getBucket());
 			uploadTask.addOnFailureListener(new OnFailureListener() {
 				@Override
 				public void onFailure(@NonNull Exception exception) {
 					// Handle unsuccessful uploads
-					Log.d("RESPONSE", "error:" + exception.getMessage());
+					Log.d("UPLOADFILE", "error:" + exception.getMessage());
 
 				}
 			}).addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
 				@Override
 				public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
-					Log.d("RESPONSE", "success:" + taskSnapshot.toString());
+					Log.d("UPLOADFILE", "success:" + taskSnapshot.toString());
 					// taskSnapshot.getMetadata() contains file metadata such as size, content-type, etc.
 					// ...
 				}
 			});
 		} catch (FileNotFoundException e) {
+			Log.d("UPLOADFILE", "ada");
 			e.printStackTrace();
 		}
 
