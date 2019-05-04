@@ -7,8 +7,6 @@ import knn
 import os
 import utils
 
-utils.init_app()
-
 def train_feature(count): # TODO other errors like file not found...
     file = ''
     for i in range(count):
@@ -25,11 +23,13 @@ def train_feature(count): # TODO other errors like file not found...
 def hasDoneFit():
     ready_flag = utils.get_flag()
     return flask.jsonify(ready_flag)
+    return 'TRUE'
 
 def train(request):
     if request.path.startswith('/'):
         count = request.path.lstrip('/')
-        
+       # if count == 'instant':
+
         if count == 'fit':
             if request.method == 'GET':
                 return knn.fit_knn(), 200

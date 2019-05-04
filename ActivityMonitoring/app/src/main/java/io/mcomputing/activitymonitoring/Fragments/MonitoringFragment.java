@@ -156,7 +156,6 @@ public class MonitoringFragment extends Fragment implements SensorEventListener 
 		String name = nameEditText.getText().toString();
 		String activityBtnName = getString(R.string.error);
 		boolean editTextEnabled = true;
-		int internActivityCount = 1;
 		switch (monitoringState){
 			case 0:
 				if(activityCount < 4 && !name.isEmpty()) {
@@ -191,13 +190,9 @@ public class MonitoringFragment extends Fragment implements SensorEventListener 
 				break;
 		}
 
-		if(activityCount == 0)
-			internActivityCount = 1;
-		else
-			internActivityCount = activityCount;
 		nameEditText.setEnabled(editTextEnabled);
 		activityBtn.setText(activityBtnName);
-		indicator.setText(String.valueOf(internActivityCount));
+		indicator.setText(String.valueOf(activityCount));
 	}
 
 	private void setTimeOutHandler(){

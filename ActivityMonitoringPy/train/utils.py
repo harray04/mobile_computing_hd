@@ -1,3 +1,4 @@
+import os
 from google.cloud import storage
 import csv
 import firebase_admin
@@ -5,12 +6,16 @@ from firebase_admin import db
 from firebase_admin import credentials
 from firebase_admin.credentials import Certificate
 
-def init_app():
-    cred = credentials.Certificate('/home/harald/Dokumente/Mobile_Computing/credo.json')
-    fA = firebase_admin.initialize_app(cred, {'databaseURL': 'https://coinz-c5130.firebaseio.com'})
-    
 
+#os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = './credo.json'
+
+def init_app():
+    if (not len(firebase_admin._apps)):
+        cred = credentials.Certificate('./credo.json')        
+        fA = firebase_admin.initialize_app(cred, {'databaseURL': 'https://coinz-c5130.firebaseio.com'})
+    
 def set_flag():
+    init_app()
     root = db.reference()
     # Add a new user under /users.
     ready_for_knn = root.child('KNN').set({
@@ -18,6 +23,7 @@ def set_flag():
     })
 
 def get_flag():
+    init_app()
     root = db.reference('KNN')
     # Add a new user under /users.
     ready_for_knn = root.get()
