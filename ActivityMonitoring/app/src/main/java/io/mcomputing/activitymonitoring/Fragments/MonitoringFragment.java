@@ -41,6 +41,7 @@ import java.util.HashMap;
 import java.util.List;
 
 import cz.msebera.android.httpclient.Header;
+import io.mcomputing.activitymonitoring.Activities.MainActivity;
 import io.mcomputing.activitymonitoring.Adapters.SensorDataAdapter;
 import io.mcomputing.activitymonitoring.JSONAsyncTask;
 import io.mcomputing.activitymonitoring.Models.ActivityModel;
@@ -52,7 +53,7 @@ public class MonitoringFragment extends Fragment implements SensorEventListener 
 	public static final String TAG = "MonitoringFragment";
 	public static final int MAX_VISIBLE_VALUE_COUNT = 3;
 	private static final int MAX_ACTIVITY_COUNT = 3;
-	private static final int MAX_MONITORING_TIME = 2; // in minutes
+	private static final int MAX_MONITORING_TIME = 1; // in minutes
 	private LineChart multiLineChart;
 	private SensorManager mSensorManager;
 	//private Sensor mSensorProximity;
@@ -95,18 +96,28 @@ public class MonitoringFragment extends Fragment implements SensorEventListener 
 		return view;
 	}
 
-	private void checkHasProb(){
 
+
+	private void checkHasProb(){
+		nextBtn.hide();
+		nextBtn.setOnClickListener(new View.OnClickListener() {
+			@Override
+			public void onClick(View v) {
+				((MainActivity)activity).loadFragment(R.id.content_main,
+						ProbabilityFragment.newInstance(), ProbabilityFragment.TAG);
+			}
+		});
 		JSONAsyncTask.hasProb(new JsonHttpResponseHandler(){
 			@Override
 			public void onSuccess(int statusCode, Header[] headers, JSONObject response) {
 				// If the response is JSONObject instead of expected JSONArray
 				Log.d("RESPONSEBODY", "success:" + response);
-				nextBtn.setVisibility(View.GONE);
+
 				try {
 					boolean success = (boolean) response.getBoolean("success");
-					if(success)
-						nextBtn.setVisibility(View.VISIBLE);
+					if(success) {
+						nextBtn.show();
+					}
 
 				} catch (JSONException e) {
 					e.printStackTrace();
@@ -518,7 +529,7 @@ public class MonitoringFragment extends Fragment implements SensorEventListener 
 	}
 
 	private void resetAndSaveChart(){
-		if(timeStamp >= MAX_MONITORING_TIME){
+		if(timeStamp >= MAX_MONITORING_TIME && monitoringState == 1){
 			if(activityCount < MAX_ACTIVITY_COUNT) {
 				UtilsManager.writeFile(activity, (activityCount - 1) + ".csv", createCSVStringList());
 				activityBtn.setText(R.string.start);

@@ -10,11 +10,11 @@ import com.loopj.android.http.RequestParams;
 
 
 public class JSONAsyncTask extends JsonHttpResponseHandler {
-	public static final String BASE_URL = "https://train-dot-fir-functions-17922.appspot.com/train/";
+	public static final String BASE_URL = "https://us-central1-fir-functions-17922.cloudfunctions.net/train/";
 	public static final String HAS_FIT = "fit";
 	public static final String HAS_PROB = "prob";
 
-	private static AsyncHttpClient client = new AsyncHttpClient();
+	private static AsyncHttpClient client = new AsyncHttpClient(true,80,443);
 
 	public static void get(String url, RequestParams params, AsyncHttpResponseHandler responseHandler) {
 		client.get(getAbsoluteUrl(url), params, responseHandler);

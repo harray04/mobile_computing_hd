@@ -42,6 +42,10 @@ public class ProbabilityFragment extends Fragment {
 		return view;
 	}
 
+	public static ProbabilityFragment newInstance(){
+		return new ProbabilityFragment();
+	}
+
 	private void setListView(){
 		List<ActivityListModel> monitoringModels = generateItemList();
 		MonitoringAdapter adapter = new MonitoringAdapter(activity, monitoringModels);
