@@ -114,7 +114,7 @@ public class MonitoringFragment extends Fragment implements SensorEventListener 
 				Log.d("RESPONSEBODY", "success:" + response);
 
 				try {
-					boolean success = (boolean) response.getBoolean("success");
+					boolean success = (boolean) response.getBoolean("is_ready");
 					if(success) {
 						nextBtn.show();
 					}

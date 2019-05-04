@@ -10,7 +10,7 @@ import com.loopj.android.http.RequestParams;
 
 
 public class JSONAsyncTask extends JsonHttpResponseHandler {
-	public static final String BASE_URL = "https://us-central1-fir-functions-17922.cloudfunctions.net/train/";
+	public static final String BASE_URL = "https://us-central1-coinz-c5130.cloudfunctions.net/train/";
 	public static final String HAS_FIT = "fit";
 	public static final String HAS_PROB = "prob";
 

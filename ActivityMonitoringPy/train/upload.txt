@@ -1,0 +1,1 @@
+gcloud functions deploy train --runtime python37 --trigger-http

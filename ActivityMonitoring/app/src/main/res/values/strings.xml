@@ -4,7 +4,7 @@
     <string name="monitoring_activities">Monitoring Activities</string>
     <string name="sensor_data">Sensor Data</string>
     <string name="activity_probability">Activity Probability</string>
-    <string name="firebase_storage">gs://fir-functions-17922.appspot.com</string>
+    <string name="firebase_storage">gs://coinz-c5130.appspot.com</string>
     <string name="start">Start</string>
     <string name="stop">Stop</string>
     <string name="reset">Reset</string>
