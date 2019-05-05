@@ -31,9 +31,9 @@ def smoothen_values(csvReader):
         m = m_smooth
     return m
 
-def stft(x, fftsize=32, overlap=2, instantData=false):
+def stft(x, fftsize=64, overlap=2):
     retVal = []
-    if len(x) <= fftsize or instantData:
+    if len(x) <= fftsize:
         w = scipy.hanning(len(x)+1)[:-1]
         retVal = np.array([np.fft.rfft(w*x[0:len(x)])])
     else:
@@ -53,13 +53,13 @@ def calc_energy(m):
         energy_signal.append(np.sum(np.power(abs(stft_signal[i]),2)))
     return energy_signal
 
-def feature(x, fftsize=32, overlap=2, instantData=false):
+def feature(x, fftsize=64, overlap=2):
     meanamp = []
     maxamp = []
     minamp = []
     stdamp = []
     energyamp = []
-    if len(x) <= fftsize or instantData:
+    if len(x) <= fftsize:
         meanamp.append(np.array(np.mean(x[0:len(x)])))
         maxamp.append(np.array(np.max(x[0:len(x)])))
         minamp.append(np.array(np.min(x[0:len(x)])))
@@ -68,6 +68,7 @@ def feature(x, fftsize=32, overlap=2, instantData=false):
     else:
         hop = round(fftsize / overlap)
         for i in range(0, len(x)-fftsize, hop):
+            #print(str(i) + '\n')
             meanamp.append(np.array(np.mean(x[i:i+fftsize])))
             maxamp.append(np.array(np.max(x[i:i+fftsize])))
             minamp.append(np.array(np.min(x[i:i+fftsize])))
@@ -85,11 +86,11 @@ def smooth_plot(m):
     plt.title('Walking')
     plt.show()
 
-def normalize_features(m, instantData=false):
+def normalize_features(m):
     
     energy_signal = calc_energy(m)
-    valmean, valmax, valmin, valstd, valenergy = feature(m, instantData=instantData)
-    print(valmean)
+    valmean, valmax, valmin, valstd, valenergy = feature(m)
+    #print(valmean)
     return valmean, valmax, valmin, valstd, valenergy, energy_signal
     #valmean_nor = ((valmean) - min(valmean))/(max(valmean) - min(valmean))
     #valmax_nor = ((valmax) - min(valmax))/(max(valmax) - min(valmax))
@@ -99,13 +100,17 @@ def normalize_features(m, instantData=false):
     #energy_signal_nor = ((energy_signal) - min(energy_signal))/(max(energy_signal) - min(energy_signal))
 
     #return valmean_nor, valmax_nor, valmin_nor, valstd_nor, valenergy_nor, energy_signal_nor
-def write_to_file(csvReader, ty, instantData=false):
+def write_to_file(csvReader, ty=-1):
     m = smoothen_values(csvReader)
     #smooth_plot(m)
     
-    valmean, valmax, valmin, valstd, valenergy, energy_signal = normalize_features(m, instantData)
+    valmean, valmax, valmin, valstd, valenergy, energy_signal = normalize_features(m)
     saveFile = ''
     for i ,val in enumerate(valmean):
-        saveFile += str(valmean[i]) + ',' +str(valmax[i]) + ',' + str(valmin[i]) + ',' + str(valstd[i]) + ',' + str(valenergy[i])+','+ str(energy_signal[i]) + ',' + str(ty)
-        saveFile += '\n'
+        if(ty == -1):
+            saveFile += str(valmean[i]) + ',' +str(valmax[i]) + ',' + str(valmin[i]) + ',' + str(valstd[i]) + ',' + str(valenergy[i])+','+ str(energy_signal[i])    
+        else:
+            saveFile += str(valmean[i]) + ',' +str(valmax[i]) + ',' + str(valmin[i]) + ',' + str(valstd[i]) + ',' + str(valenergy[i])+','+ str(energy_signal[i]) + ',' + str(ty)
+            saveFile += '\n'
+        
     return saveFile

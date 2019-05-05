@@ -32,10 +32,13 @@ import com.github.mikephil.charting.interfaces.datasets.ILineDataSet;
 import com.google.firebase.storage.UploadTask;
 import com.loopj.android.http.AsyncHttpResponseHandler;
 import com.loopj.android.http.JsonHttpResponseHandler;
+import com.loopj.android.http.RequestParams;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -52,8 +55,8 @@ import io.mcomputing.activitymonitoring.UtilsManager;
 public class MonitoringFragment extends Fragment implements SensorEventListener {
 	public static final String TAG = "MonitoringFragment";
 	public static final int MAX_VISIBLE_VALUE_COUNT = 3;
-	private static final int MAX_ACTIVITY_COUNT = 3;
-	private static final int MAX_MONITORING_TIME = 1; // in minutes
+	private static final int MAX_ACTIVITY_COUNT = 4;
+	private static final int MAX_MONITORING_TIME = 5; // in minutes
 	private LineChart multiLineChart;
 	private SensorManager mSensorManager;
 	//private Sensor mSensorProximity;
@@ -103,8 +106,12 @@ public class MonitoringFragment extends Fragment implements SensorEventListener 
 		nextBtn.setOnClickListener(new View.OnClickListener() {
 			@Override
 			public void onClick(View v) {
+				ProbabilityFragment fragment = ProbabilityFragment.newInstance();
+				Bundle bundle = new Bundle();
+				bundle.putInt("act_count", activityCount);
+				fragment.setArguments(bundle);
 				((MainActivity)activity).loadFragment(R.id.content_main,
-						ProbabilityFragment.newInstance(), ProbabilityFragment.TAG);
+						fragment, ProbabilityFragment.TAG);
 			}
 		});
 		JSONAsyncTask.hasProb(new JsonHttpResponseHandler(){
@@ -116,6 +123,12 @@ public class MonitoringFragment extends Fragment implements SensorEventListener 
 				try {
 					boolean success = (boolean) response.getBoolean("is_ready");
 					if(success) {
+						int count = response.getInt("act_count");
+						activityCount = count;
+						nameEditText.setEnabled(false);
+						activityBtn.setText(R.string.reset);
+						monitoringState = 2;
+						indicator.setText(String.valueOf(activityCount - 1));
 						nextBtn.show();
 					}
 
@@ -417,8 +430,8 @@ public class MonitoringFragment extends Fragment implements SensorEventListener 
 	}
 
 	@Override
-	public void onDestroy(){
-		super.onDestroy();
+	public void onDestroyView(){
+		super.onDestroyView();
 		mSensorManager.unregisterListener(this);
 	}
 
@@ -523,18 +536,52 @@ public class MonitoringFragment extends Fragment implements SensorEventListener 
 		}
 	}
 
+
+	private void postActivities(){
+		JSONArray jsonArray = new JSONArray();
+		int counter = 0;
+		try {
+			for (String actName : activityNames) {
+				JSONObject jsonObject = new JSONObject();
+
+				jsonObject.put("name", actName);
+
+				jsonArray.put(counter, jsonObject);
+				counter++;
+			}
+
+			JSONAsyncTask.setActivities(activity, jsonArray,new AsyncHttpResponseHandler(){
+				@Override
+				public void onSuccess(int statusCode, Header[] headers, byte[] responseBody) {
+					Log.d("ACTIVITYPOST", "success");
+				}
+				@Override
+				public void onFailure(int statusCode, Header[] headers, byte[] responseBody, Throwable error)  {
+					Log.d("ACTIVITYPOST", "error");
+				}
+			});
+		} catch (JSONException e) {
+			e.printStackTrace();
+		} catch (UnsupportedEncodingException e) {
+			e.printStackTrace();
+		}
+	}
+
 	private void resetAndSaveChart(){
-		if(timeStamp >= MAX_MONITORING_TIME && monitoringState == 1){
-			if(activityCount < MAX_ACTIVITY_COUNT) {
-				UtilsManager.writeFile(activity, (activityCount - 1) + ".csv", createCSVStringList());
-				activityBtn.setText(R.string.start);
-				nameEditText.setEnabled(true);
-				monitoringState = 0;
-			}else if(activityCount == MAX_ACTIVITY_COUNT) {
-				UtilsManager.writeFile(activity, (activityCount - 1) + ".csv", createCSVStringList());
-				nameEditText.setEnabled(false);
-				activityBtn.setText(R.string.reset);
-				monitoringState = 2;
+		if(timeStamp >= MAX_MONITORING_TIME ){
+			if(monitoringState == 1) {
+				if (activityCount < MAX_ACTIVITY_COUNT) {
+					UtilsManager.writeFile(activity, (activityCount - 1) + ".csv", createCSVStringList(), false);
+					activityBtn.setText(R.string.start);
+					nameEditText.setEnabled(true);
+					monitoringState = 0;
+				} else if (activityCount == MAX_ACTIVITY_COUNT) {
+					UtilsManager.writeFile(activity, (activityCount - 1) + ".csv", createCSVStringList(), false);
+					nameEditText.setEnabled(false);
+					postActivities();
+					activityBtn.setText(R.string.reset);
+					monitoringState = 2;
+				}
 			}
 
 			resetChart();

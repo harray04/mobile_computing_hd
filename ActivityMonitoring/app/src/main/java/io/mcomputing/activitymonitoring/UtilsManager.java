@@ -49,7 +49,8 @@ public class UtilsManager {
 		return buffer.getLong();
 	}
 
-	public static void writeFile(Context context, String title, List<String> lines) {
+
+	public static File writeFile(Context context, String title, List<String> lines, boolean isCreateFile) {
 		DataOutputStream fOutStream = null;
 		String newLine = System.getProperty("line.separator");
 		String path = context.getFilesDir().getPath() + '/' + title;
@@ -63,7 +64,7 @@ public class UtilsManager {
 			try {
 				boolean createFile = newFile.createNewFile();
 				if(!createFile)
-					return;
+					return null;
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
@@ -78,7 +79,10 @@ public class UtilsManager {
 				fOutStream.flush();
 			}
 			Log.d("RESPONSE", "4");
-			uploadFile(context, path, title	);
+			if(!isCreateFile)
+				uploadFile(context, path, title);
+			else
+				return newFile;
 
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
@@ -97,7 +101,7 @@ public class UtilsManager {
 			}
 
 		}
-
+		return null;
 	}
 
 	private static void uploadFile(Context context, String path, String title){
@@ -107,13 +111,9 @@ public class UtilsManager {
 
 		DataInputStream dataInputStream = null;
 		try {
-			Log.d("UPLOADFILE", "betweem Path: "+ path);
 			dataInputStream = new DataInputStream(new FileInputStream(path));
 			UploadTask uploadTask = activityRef.putStream(dataInputStream);
 
-			Log.d("UPLOADFILE", "Path: "+activityRef.getPath());
-			Log.d("UPLOADFILE", "Name: "+activityRef.getName());
-			Log.d("UPLOADFILE", "Bucket: "+activityRef.getBucket());
 			uploadTask.addOnFailureListener(new OnFailureListener() {
 				@Override
 				public void onFailure(@NonNull Exception exception) {

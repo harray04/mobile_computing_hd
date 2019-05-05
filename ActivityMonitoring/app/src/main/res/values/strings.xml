@@ -9,4 +9,6 @@
     <string name="stop">Stop</string>
     <string name="reset">Reset</string>
     <string name="error">error</string>
+    <string name="extraction_title">Extract Features</string>
+    <string name="extraction_body">The Server is currently doing feature extraction...</string>
 </resources>

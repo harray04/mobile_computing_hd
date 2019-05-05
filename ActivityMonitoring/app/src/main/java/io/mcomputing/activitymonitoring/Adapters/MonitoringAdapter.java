@@ -22,6 +22,10 @@ public class MonitoringAdapter extends BaseAdapter {
 		inflater = (LayoutInflater.from(context));
 	}
 
+	public void setItemAtPos(int pos, String value){
+		values.get(pos).setValue(value);
+		notifyDataSetChanged();
+	}
 
 	@Override
 	public int getCount() {
