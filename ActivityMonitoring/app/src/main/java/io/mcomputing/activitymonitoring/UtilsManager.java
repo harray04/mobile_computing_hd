@@ -7,6 +7,9 @@ import android.util.Log;
 
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Task;
+import com.google.android.gms.tasks.Tasks;
+import com.google.firebase.storage.FileDownloadTask;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
@@ -159,6 +162,33 @@ public class UtilsManager {
 		BigDecimal bd = new BigDecimal(value);
 		bd = bd.setScale(places, RoundingMode.HALF_UP);
 		return bd.doubleValue();
+	}
+
+	public static Task<FileDownloadTask.TaskSnapshot> downloadFile(Context context, String fileName) {
+		FirebaseStorage storage = FirebaseStorage.getInstance();
+		StorageReference storageRef = storage.getReferenceFromUrl(context.getString(R.string.firebase_storage));
+		StorageReference  islandRef = storageRef.child(fileName);
+		String path = context.getFilesDir().getPath();
+		File rootPath = new File(path, "Final");
+		if(!rootPath.exists()) {
+			rootPath.mkdirs();
+		}
+
+		final File localFile = new File(rootPath,fileName);
+
+		Task<FileDownloadTask.TaskSnapshot> task = islandRef.getFile(localFile);
+		task.addOnSuccessListener(new OnSuccessListener<FileDownloadTask.TaskSnapshot>() {
+			@Override
+			public void onSuccess(FileDownloadTask.TaskSnapshot taskSnapshot) {
+				Log.d("SUCCESSTASK", "hier:" + taskSnapshot.getTotalByteCount());
+			}
+		}).addOnFailureListener(new OnFailureListener() {
+			@Override
+			public void onFailure(@NonNull Exception e) {
+				Log.d("SUCCESSTASK", "fail:" + e.getMessage());
+			}
+		});
+		return task;
 	}
 
 }

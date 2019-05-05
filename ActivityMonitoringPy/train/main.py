@@ -4,7 +4,7 @@ import flask
 from flask import Flask, flash, request, redirect, url_for
 from werkzeug.utils import secure_filename
 import feature
-from feature import write_to_file
+from feature import write_to_file, write_single_feature
 import knn
 import os
 import utils
@@ -12,20 +12,36 @@ import numpy as np
 
 def train_feature(count): # TODO other errors like file not found...
     file = ''
+    sampleCount = 0
+    testFile = ''
+    trainFile = ''
+    trainSampleCount = 0
+    testSampleCount = 0
     for i in range(count):
         print('file nr.:' + str(i))
         csv_reader = utils.download_reader(str(i))
-        file += write_to_file(csv_reader, i)
+        trainSet, testSet, trainSize, testSize = write_to_file(csv_reader, i)
+        trainFile += trainSet
+        testFile += testSet
+        trainSampleCount += trainSize
+        testSampleCount += testSize
         #os.remove(fileName)
-    
-    if(len(file) > 0):
-        utils.upload_string('features_final.csv', file)
+    uploadFile = str(trainSampleCount) + ',' + str(6) + ',' + str(0) + '\n'
+    uploadFile += trainFile
+    utils.upload_string('train_features.csv', uploadFile)
+
+    uploadFile = str(testSampleCount) + ',' + str(6) + ',' + str(0) + '\n'
+    uploadFile += testFile
+    utils.upload_string('test_features.csv', uploadFile)
+    utils.set_trained({
+        'is_ready': True
+    })
     return flask.jsonify({'success': True})
 
 def hasDoneFit():
     ready_flag = utils.get_flag()
     return flask.jsonify(ready_flag)
-    return 'TRUE'
+
 def allowed_file(filename):
     ALLOWED_EXTENSIONS = set(['csv'])
     return '.' in filename and \
@@ -34,8 +50,14 @@ def train(request):
     if request.path.startswith('/'):
         count = request.path.lstrip('/')
        # if count == 'instant':
+        if count == 'fit':
+            if request.method == 'GET':
+                return flask.jsonify(utils.get_trained()), 200
         if count == 'reset':
             if request.method == 'PUT':
+                utils.set_trained({
+                    'is_ready': False
+                })
                 retVal = utils.reset_flag()
                 return flask.jsonify({'success': True}), 200
         if count == 'act':
@@ -46,9 +68,9 @@ def train(request):
                 request_jsonified = flask.jsonify(request_json)
                 utils.set_activites(request_json)
                 return request_jsonified, 200
-        if count == 'fit':
-            if request.method == 'GET':
-                return knn.fit_knn(), 200
+        #if count == 'fit':
+        #    if request.method == 'GET':
+        #        return knn.fit_knn(), 200
         if count == 'prob':
             if request.method == 'GET':
                 return hasDoneFit(), 200
@@ -65,12 +87,12 @@ def train(request):
                     fileData = file.read()
                     csvData = str(fileData, 'UTF-8')
                     csvReader = utils.string_to_csv_reader(csvData)
-                    file = write_to_file(csvReader)
+                    file = write_single_feature(csvReader)
                     currentDataArr = np.fromstring(file, dtype=float, sep=',')
-                    probability = knn.fit_knn(currentDataArr)
+                    #probability = knn.fit_knn(currentDataArr)
                     print(file)
                     #file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-                    return flask.jsonify({'success': True, 'data': file, 'prob': probability}), 200
+                    return flask.jsonify({'success': True, 'data': file}), 200 #, 'prob': probability}), 200
                 else:
                     return 'Wrong file extension', 400
 

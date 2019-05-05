@@ -15,8 +15,16 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ListView;
+import android.widget.TextClock;
+import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Task;
+import com.google.android.gms.tasks.Tasks;
+import com.google.firebase.storage.FileDownloadTask;
 import com.loopj.android.http.JsonHttpResponseHandler;
 import com.loopj.android.http.RequestParams;
 
@@ -27,10 +35,14 @@ import org.json.JSONObject;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 import cz.msebera.android.httpclient.Header;
 import io.mcomputing.activitymonitoring.Adapters.MonitoringAdapter;
+import io.mcomputing.activitymonitoring.Helpers.FileManager;
+import io.mcomputing.activitymonitoring.Helpers.TestRecord;
+import io.mcomputing.activitymonitoring.Helpers.knn;
 import io.mcomputing.activitymonitoring.JSONAsyncTask;
 import io.mcomputing.activitymonitoring.Models.ActivityListModel;
 import io.mcomputing.activitymonitoring.R;
@@ -47,6 +59,9 @@ public class ProbabilityFragment extends Fragment implements SensorEventListener
 	private List<String> csvSensorValues = new ArrayList<>();
 	private MonitoringAdapter adapter;
 	private int trainActCount = 0;
+	private boolean ready = false;
+
+	private Object notifyObject = new Object();
 	@Override
 	public View onCreateView(@NonNull LayoutInflater inflater,
 							 ViewGroup container, Bundle savedInstanceState) {
@@ -59,11 +74,72 @@ public class ProbabilityFragment extends Fragment implements SensorEventListener
 			trainActCount = bundle.getInt("act_count");
 		setBackBtn();
 		setTrainFeature();
-		if(trainActCount > 0)
-			generateItemList();
-		else
-			Toast.makeText(activity, getString(R.string.feature_extraction_txt), Toast.LENGTH_SHORT).show();
+		initList();
+		getAccuracy();
+		//UtilsManager.downloadFile(activity);
 		return view;
+	}
+
+	private void getAccuracy(){
+		if(ready){
+			Task<FileDownloadTask.TaskSnapshot> task1 = UtilsManager.downloadFile(activity, "train_features.csv");
+			Task<FileDownloadTask.TaskSnapshot> task2 = UtilsManager.downloadFile(activity, "test_features.csv");
+
+			Tasks.whenAll(task1, task2).addOnCompleteListener(new OnCompleteListener<Void>() {
+				@Override
+				public void onComplete(@NonNull Task<Void> task) {
+					String filePath1 = activity.getFilesDir().getPath() + "/Final/train_features.csv";
+					String filePath2 = activity.getFilesDir().getPath() + "/Final/test_features.csv";
+
+					TextView acc_tv = view.findViewById(R.id.accuracy_tv);
+					acc_tv.setVisibility(View.VISIBLE);
+					double acc = knn.knn(filePath1, filePath2, 12);
+					acc_tv.setText("Accuracy: " + String.valueOf(acc) + '%');
+				}
+			});
+					//  updateDb(timestamp,localFile.toString(),positio
+		}
+	}
+
+	private void initList(){
+		JSONAsyncTask.getExtracted(new JsonHttpResponseHandler() {
+			@Override
+			public void onSuccess(int statusCode, Header[] headers, JSONObject response) {
+				// If the response is JSONObject instead of expected JSONArray
+				Log.d("TRAINFEATURE", "success:" + response);
+				try {
+					boolean success = false;
+					if (response != null) {
+						success = response.getBoolean("is_ready");
+					}
+					ready = success;
+					if (success) {
+						generateItemList();
+					}
+
+					getAccuracy();
+
+				} catch (JSONException e) {
+					e.printStackTrace();
+				}
+
+			}
+
+			@Override
+			public void onFailure(int statusCode, Header[] headers, Throwable throwable,
+								  JSONObject errorResponse) {
+				// Pull out the first event on the public timeline
+				Toast.makeText(activity, errorResponse.toString(), Toast.LENGTH_LONG).show();
+				Log.d("TRAINFEATURE", "error:" + errorResponse);
+			}
+
+			@Override
+			public void onFailure(int statusCode, Header[] headers, String responseString, Throwable throwable) {
+				Log.d("TRAINFEATURE", "error1:" + responseString);
+				Toast.makeText(activity, responseString, Toast.LENGTH_LONG).show();
+			}
+		});
+
 	}
 
 	private void setTrainFeature(){
@@ -71,49 +147,93 @@ public class ProbabilityFragment extends Fragment implements SensorEventListener
 		run_feature.setOnClickListener(new View.OnClickListener() {
 			@Override
 			public void onClick(View v) {
-				if(trainActCount == 0) {
-					final ProgressDialog dialog = ProgressDialog.show(activity, getString(R.string.extraction_title),
-							getString(R.string.extraction_body), true);
-					JSONAsyncTask.trainFeature(String.valueOf(trainActCount), new JsonHttpResponseHandler() {
-						@Override
-						public void onSuccess(int statusCode, Header[] headers, JSONObject response) {
-							// If the response is JSONObject instead of expected JSONArray
-							Log.d("TRAINFEATURE", "success:" + response);
-							dialog.dismiss();
-							if(response != null)
-								Toast.makeText(activity, response.toString(), Toast.LENGTH_LONG).show();
-							try {
-								boolean success = false;
-								if (response != null) {
-									success = response.getBoolean("success");
-								}
-								if(success)
-									generateItemList();
-							} catch (JSONException e) {
-								e.printStackTrace();
+				final ProgressDialog dialog = ProgressDialog.show(activity, getString(R.string.extraction_title),
+						getString(R.string.extraction_body), true);
+				JSONAsyncTask.getExtracted(new JsonHttpResponseHandler() {
+					@Override
+					public void onSuccess(int statusCode, Header[] headers, JSONObject response) {
+						// If the response is JSONObject instead of expected JSONArray
+						Log.d("TRAINFEATURE", "success:" + response);
+						try {
+							boolean success = false;
+							if (response != null) {
+								success = response.getBoolean("is_ready");
+							}
+							ready = success;
+							if (success) {
+								dialog.dismiss();
+								Toast.makeText(activity,
+										ProbabilityFragment.this.getString(R.string.features_extracted),
+										Toast.LENGTH_SHORT).show();
+							}else {
+								startFeatureExtraction(dialog);
 							}
 
+						} catch (JSONException e) {
+							dialog.dismiss();
+							e.printStackTrace();
 						}
 
-						@Override
-						public void onFailure(int statusCode, Header[] headers, Throwable throwable,
-											  JSONObject errorResponse) {
-							// Pull out the first event on the public timeline
-							dialog.dismiss();
-							Toast.makeText(activity, errorResponse.toString(), Toast.LENGTH_LONG).show();
-							Log.d("TRAINFEATURE", "error:" + errorResponse);
-						}
+					}
 
-						@Override
-						public void onFailure(int statusCode, Header[] headers, String responseString, Throwable throwable) {
-							Log.d("TRAINFEATURE", "error1:" + responseString);
-							dialog.dismiss();
-							Toast.makeText(activity, responseString, Toast.LENGTH_LONG).show();
-						}
-					});
-				}else{
-					Toast.makeText(activity, ProbabilityFragment.this.getString(R.string.features_extracted), Toast.LENGTH_SHORT).show();
+					@Override
+					public void onFailure(int statusCode, Header[] headers, Throwable throwable,
+										  JSONObject errorResponse) {
+						// Pull out the first event on the public timeline
+						Toast.makeText(activity, errorResponse.toString(), Toast.LENGTH_LONG).show();
+						Log.d("TRAINFEATURE", "error:" + errorResponse);
+					}
+
+					@Override
+					public void onFailure(int statusCode, Header[] headers, String responseString, Throwable throwable) {
+						Log.d("TRAINFEATURE", "error1:" + responseString);
+						Toast.makeText(activity, responseString, Toast.LENGTH_LONG).show();
+					}
+				});
+
+			}
+
+		});
+	}
+
+	private void startFeatureExtraction(final ProgressDialog dialog){
+		JSONAsyncTask.trainFeature(String.valueOf(trainActCount), new JsonHttpResponseHandler() {
+			@Override
+			public void onSuccess(int statusCode, Header[] headers, JSONObject response) {
+				// If the response is JSONObject instead of expected JSONArray
+				Log.d("TRAINFEATURE", "success:" + response);
+				dialog.dismiss();
+				if(response != null)
+					Toast.makeText(activity, response.toString(), Toast.LENGTH_LONG).show();
+				try {
+					boolean success = false;
+					if (response != null) {
+						success = response.getBoolean("success");
+					}
+					ready = success;
+					if(success)
+						generateItemList();
+					getAccuracy();
+				} catch (JSONException e) {
+					e.printStackTrace();
 				}
+
+			}
+
+			@Override
+			public void onFailure(int statusCode, Header[] headers, Throwable throwable,
+								  JSONObject errorResponse) {
+				// Pull out the first event on the public timeline
+				dialog.dismiss();
+				Toast.makeText(activity, errorResponse.toString(), Toast.LENGTH_LONG).show();
+				Log.d("TRAINFEATURE", "error:" + errorResponse);
+			}
+
+			@Override
+			public void onFailure(int statusCode, Header[] headers, String responseString, Throwable throwable) {
+				Log.d("TRAINFEATURE", "error1:" + responseString);
+				dialog.dismiss();
+				Toast.makeText(activity, responseString, Toast.LENGTH_LONG).show();
 			}
 		});
 	}
@@ -207,11 +327,22 @@ public class ProbabilityFragment extends Fragment implements SensorEventListener
 				@Override
 				public void onSuccess(int statusCode, Header[] headers, JSONObject response) {
 					// If the response is JSONObject instead of expected JSONArray
-					Log.d("FEATURERESPONSE", "success:" + response);
+
+
 					try { // TODO in Java
-						String prob = response.getString("prob");
-						String probArr = prob.split("Predict:")[1];
-						adapter.setItemAtPos(0, probArr);
+						String filePath = activity.getFilesDir().getPath() + "/Final/train_features.csv";
+						File train_features = new File(filePath);
+						if(train_features.exists()){
+							String data = response.getString("data");
+							TestRecord testRecord = FileManager.createNewTestRecord(data);
+							HashMap<Integer, Double> knn_prob = knn.knn_predict(filePath, testRecord, 12);
+							if(knn_prob != null) {
+								adapter.setItems(knn_prob);
+							}
+						}
+
+
+						//adapter.setItemAtPos(0, probArr);
 						//Toast.makeText(activity, prob, Toast.LENGTH_SHORT).show();
 					} catch (JSONException e) {
 						e.printStackTrace();

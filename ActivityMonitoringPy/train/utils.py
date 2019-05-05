@@ -13,6 +13,19 @@ def init_app():
     if (not len(firebase_admin._apps)):
         cred = credentials.Certificate('./credo.json')        
         fA = firebase_admin.initialize_app(cred, {'databaseURL': 'https://coinz-c5130.firebaseio.com'})
+
+def set_trained(trained_body):
+    init_app()
+    root = db.reference()
+    # Add a new user under /users.
+    ready_for_knn = root.child('TRAIN').set(trained_body)
+
+def get_trained():
+    init_app()
+    root = db.reference('TRAIN')
+    # Add a new user under /users.
+    trained_content = root.get()
+    return trained_content
     
 def set_flag(count):
     init_app()

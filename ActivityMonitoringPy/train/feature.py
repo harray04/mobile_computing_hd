@@ -106,6 +106,7 @@ def write_to_file(csvReader, ty=-1):
     
     valmean, valmax, valmin, valstd, valenergy, energy_signal = normalize_features(m)
     saveFile = ''
+    
     for i ,val in enumerate(valmean):
         if(ty == -1):
             saveFile += str(valmean[i]) + ',' +str(valmax[i]) + ',' + str(valmin[i]) + ',' + str(valstd[i]) + ',' + str(valenergy[i])+','+ str(energy_signal[i])    
@@ -113,4 +114,41 @@ def write_to_file(csvReader, ty=-1):
             saveFile += str(valmean[i]) + ',' +str(valmax[i]) + ',' + str(valmin[i]) + ',' + str(valstd[i]) + ',' + str(valenergy[i])+','+ str(energy_signal[i]) + ',' + str(ty)
             saveFile += '\n'
         
+    return saveFile
+
+def write_to_file(csvReader, ty, maxTestSize=5):
+    m = smoothen_values(csvReader)
+    #smooth_plot(m)
+    
+    valmean, valmax, valmin, valstd, valenergy, energy_signal = normalize_features(m)
+
+    trainSet = ''
+    testSet = ''
+    testCounter = 0
+
+    testSize = 0
+    trainSize = 0
+    for i ,val in enumerate(valmean):
+        entry = str(valmean[i]) + ',' +str(valmax[i]) + ',' + str(valmin[i]) + ',' + str(valstd[i]) + ',' + str(valenergy[i])+','+ str(energy_signal[i]) + ',' + str(ty)
+        if((testCounter % maxTestSize) == 0):
+            testCounter = 0
+            testSet += entry
+            testSet += '\n'
+            testSize += 1
+        else:
+            trainSet += entry
+            trainSet += '\n'
+            trainSize += 1    
+        testCounter += 1
+        
+        
+    return trainSet, testSet, trainSize, testSize
+
+def write_single_feature(csvReader):
+    m = smoothen_values(csvReader)
+    #smooth_plot(m)
+    valmean, valmax, valmin, valstd, valenergy, energy_signal = normalize_features(m)
+    saveFile = ''
+    if(len(valmean) > 0):
+        saveFile = str(valmean[0]) + ',' +str(valmax[0]) + ',' + str(valmin[0]) + ',' + str(valstd[0]) + ',' + str(valenergy[0])+','+ str(energy_signal[0])
     return saveFile

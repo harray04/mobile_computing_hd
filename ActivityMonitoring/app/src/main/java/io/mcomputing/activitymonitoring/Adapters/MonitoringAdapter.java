@@ -7,6 +7,7 @@ import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.TextView;
 
+import java.util.HashMap;
 import java.util.List;
 
 import io.mcomputing.activitymonitoring.Models.ActivityListModel;
@@ -22,8 +23,18 @@ public class MonitoringAdapter extends BaseAdapter {
 		inflater = (LayoutInflater.from(context));
 	}
 
-	public void setItemAtPos(int pos, String value){
-		values.get(pos).setValue(value);
+	public void setItems(HashMap<Integer, Double> proba){
+
+		for(int i = 0; i < values.size(); i++){
+			String value = "0.0 %";
+			if(proba.containsKey(i)){
+				double prob = proba.get(i);
+				value = String.valueOf(prob) + " %";
+			}
+
+			values.get(i).setValue(value);
+		}
+
 		notifyDataSetChanged();
 	}
 

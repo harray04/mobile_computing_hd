@@ -71,5 +71,10 @@ public class JSONAsyncTask extends JsonHttpResponseHandler {
 	public static void resetTrain(AsyncHttpResponseHandler responseHandler){
 		JSONAsyncTask.put(RESET, null, responseHandler);
 	}
+
+
+	public static void getExtracted(AsyncHttpResponseHandler responseHandler){
+		JSONAsyncTask.get(FIT, null, responseHandler);
+	}
 }
 

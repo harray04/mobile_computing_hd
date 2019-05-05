@@ -20,6 +20,15 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"/>
 
+    <TextView
+        android:id="@+id/accuracy_tv"
+        android:layout_alignParentBottom="true"
+        android:layout_marginBottom="120dp"
+        android:visibility="visible"
+        android:elevation="8dp"
+        android:layout_width="match_parent"
+        android:gravity="center"
+        android:layout_height="wrap_content" />
 
     <android.support.design.widget.FloatingActionButton
         android:id="@+id/run_feature"
