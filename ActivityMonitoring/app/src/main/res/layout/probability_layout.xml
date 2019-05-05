@@ -23,7 +23,6 @@
 
     <android.support.design.widget.FloatingActionButton
         android:id="@+id/run_feature"
-        android:visibility="gone"
         android:layout_alignParentBottom="true"
         android:layout_alignParentEnd="true"
         android:layout_marginBottom="18dp"

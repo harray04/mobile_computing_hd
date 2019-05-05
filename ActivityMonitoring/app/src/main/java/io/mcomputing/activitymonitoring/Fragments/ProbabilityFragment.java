@@ -1,6 +1,5 @@
 package io.mcomputing.activitymonitoring.Fragments;
 
-import android.app.Activity;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.hardware.Sensor;
@@ -11,7 +10,6 @@ import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentActivity;
-import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -19,7 +17,6 @@ import android.view.ViewGroup;
 import android.widget.ListView;
 import android.widget.Toast;
 
-import com.github.mikephil.charting.charts.LineChart;
 import com.loopj.android.http.JsonHttpResponseHandler;
 import com.loopj.android.http.RequestParams;
 
@@ -30,15 +27,12 @@ import org.json.JSONObject;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 
 import cz.msebera.android.httpclient.Header;
 import io.mcomputing.activitymonitoring.Adapters.MonitoringAdapter;
-import io.mcomputing.activitymonitoring.Adapters.SensorDataAdapter;
 import io.mcomputing.activitymonitoring.JSONAsyncTask;
 import io.mcomputing.activitymonitoring.Models.ActivityListModel;
-import io.mcomputing.activitymonitoring.Models.ChartModel;
 import io.mcomputing.activitymonitoring.R;
 import io.mcomputing.activitymonitoring.UtilsManager;
 
@@ -52,7 +46,7 @@ public class ProbabilityFragment extends Fragment implements SensorEventListener
 	private int countSensorValues = 0;
 	private List<String> csvSensorValues = new ArrayList<>();
 	private MonitoringAdapter adapter;
-	private int activityCount = 0;
+	private int trainActCount = 0;
 	@Override
 	public View onCreateView(@NonNull LayoutInflater inflater,
 							 ViewGroup container, Bundle savedInstanceState) {
@@ -62,9 +56,13 @@ public class ProbabilityFragment extends Fragment implements SensorEventListener
 		activity = getActivity();
 		Bundle bundle = getArguments();
 		if(bundle != null)
-			activityCount = bundle.getInt("act_count");
+			trainActCount = bundle.getInt("act_count");
 		setBackBtn();
-		generateItemList();
+		setTrainFeature();
+		if(trainActCount > 0)
+			generateItemList();
+		else
+			Toast.makeText(activity, getString(R.string.feature_extraction_txt), Toast.LENGTH_SHORT).show();
 		return view;
 	}
 
@@ -73,10 +71,10 @@ public class ProbabilityFragment extends Fragment implements SensorEventListener
 		run_feature.setOnClickListener(new View.OnClickListener() {
 			@Override
 			public void onClick(View v) {
-				if(activityCount > 0) {
+				if(trainActCount == 0) {
 					final ProgressDialog dialog = ProgressDialog.show(activity, getString(R.string.extraction_title),
 							getString(R.string.extraction_body), true);
-					JSONAsyncTask.trainFeature(String.valueOf(activityCount), new JsonHttpResponseHandler() {
+					JSONAsyncTask.trainFeature(String.valueOf(trainActCount), new JsonHttpResponseHandler() {
 						@Override
 						public void onSuccess(int statusCode, Header[] headers, JSONObject response) {
 							// If the response is JSONObject instead of expected JSONArray
@@ -84,6 +82,16 @@ public class ProbabilityFragment extends Fragment implements SensorEventListener
 							dialog.dismiss();
 							if(response != null)
 								Toast.makeText(activity, response.toString(), Toast.LENGTH_LONG).show();
+							try {
+								boolean success = false;
+								if (response != null) {
+									success = response.getBoolean("success");
+								}
+								if(success)
+									generateItemList();
+							} catch (JSONException e) {
+								e.printStackTrace();
+							}
 
 						}
 
@@ -103,6 +111,8 @@ public class ProbabilityFragment extends Fragment implements SensorEventListener
 							Toast.makeText(activity, responseString, Toast.LENGTH_LONG).show();
 						}
 					});
+				}else{
+					Toast.makeText(activity, ProbabilityFragment.this.getString(R.string.features_extracted), Toast.LENGTH_SHORT).show();
 				}
 			}
 		});
@@ -143,9 +153,6 @@ public class ProbabilityFragment extends Fragment implements SensorEventListener
 						ListView itemsListView  = (ListView) view.findViewById(R.id.probability_listview);
 						itemsListView.setAdapter(adapter);
 						initSensors();
-						setTrainFeature();
-						View run_feature = view.findViewById(R.id.run_feature);
-						run_feature.setVisibility(View.VISIBLE);
 					}
 
 				} catch (JSONException e) {

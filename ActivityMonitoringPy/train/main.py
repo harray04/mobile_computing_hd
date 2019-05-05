@@ -20,7 +20,6 @@ def train_feature(count): # TODO other errors like file not found...
     
     if(len(file) > 0):
         utils.upload_string('features_final.csv', file)
-    utils.set_flag(count)
     return flask.jsonify({'success': True})
 
 def hasDoneFit():
@@ -35,6 +34,10 @@ def train(request):
     if request.path.startswith('/'):
         count = request.path.lstrip('/')
        # if count == 'instant':
+        if count == 'reset':
+            if request.method == 'PUT':
+                retVal = utils.reset_flag()
+                return flask.jsonify({'success': True}), 200
         if count == 'act':
             if request.method == 'GET':
                 return flask.jsonify(utils.get_activities()), 200

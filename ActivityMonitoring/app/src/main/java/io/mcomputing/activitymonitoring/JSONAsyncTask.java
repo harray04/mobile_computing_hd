@@ -23,6 +23,7 @@ public class JSONAsyncTask extends JsonHttpResponseHandler {
 	public static final String FIT = "fit";
 	public static final String HAS_PROB = "prob";
 	public static final String ACT = "act";
+	public static final String RESET = "reset";
 
 	private static AsyncHttpClient client = new AsyncHttpClient(true,80,443);
 
@@ -65,6 +66,10 @@ public class JSONAsyncTask extends JsonHttpResponseHandler {
 
 	public static void trainFeature(String count, AsyncHttpResponseHandler responseHandler){
 		JSONAsyncTask.get(count, null, responseHandler);
+	}
+
+	public static void resetTrain(AsyncHttpResponseHandler responseHandler){
+		JSONAsyncTask.put(RESET, null, responseHandler);
 	}
 }
 

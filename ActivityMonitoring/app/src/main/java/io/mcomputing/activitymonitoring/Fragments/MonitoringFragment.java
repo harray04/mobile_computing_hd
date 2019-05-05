@@ -65,6 +65,7 @@ public class MonitoringFragment extends Fragment implements SensorEventListener 
 	private Activity activity;
 	private float thresHold = 0;
 	private int activityCount = 0;
+	private int actTrainCount = 0;
 	private View view;
 	private RecyclerView gridView;
 	private float timeStamp = 0;
@@ -94,8 +95,9 @@ public class MonitoringFragment extends Fragment implements SensorEventListener 
 		//initSensors();
 		checkHasProb();
 		setActivityActions();
-		initChart();
+		initChart(); // TODO start them if needed
 		setTimeOutHandler();
+		activityBtn.setClickable(false);
 		return view;
 	}
 
@@ -108,7 +110,7 @@ public class MonitoringFragment extends Fragment implements SensorEventListener 
 			public void onClick(View v) {
 				ProbabilityFragment fragment = ProbabilityFragment.newInstance();
 				Bundle bundle = new Bundle();
-				bundle.putInt("act_count", activityCount);
+				bundle.putInt("act_count", actTrainCount);
 				fragment.setArguments(bundle);
 				((MainActivity)activity).loadFragment(R.id.content_main,
 						fragment, ProbabilityFragment.TAG);
@@ -122,15 +124,19 @@ public class MonitoringFragment extends Fragment implements SensorEventListener 
 
 				try {
 					boolean success = (boolean) response.getBoolean("is_ready");
+
 					if(success) {
 						int count = response.getInt("act_count");
 						activityCount = count;
+						actTrainCount = count;
 						nameEditText.setEnabled(false);
 						activityBtn.setText(R.string.reset);
 						monitoringState = 2;
 						indicator.setText(String.valueOf(activityCount - 1));
 						nextBtn.show();
 					}
+
+					activityBtn.setClickable(true);
 
 				} catch (JSONException e) {
 					e.printStackTrace();
@@ -197,6 +203,7 @@ public class MonitoringFragment extends Fragment implements SensorEventListener 
 			case 2:
 				activityCount = 0;
 				editTextEnabled = true;
+				resetTrain();
 				activityBtnName = getString(R.string.start);
 				activityNames.clear();
 				monitoringState = 0;
@@ -206,6 +213,31 @@ public class MonitoringFragment extends Fragment implements SensorEventListener 
 		nameEditText.setEnabled(editTextEnabled);
 		activityBtn.setText(activityBtnName);
 		indicator.setText(String.valueOf(activityCount));
+	}
+
+	private void resetTrain(){
+		JSONAsyncTask.resetTrain(new JsonHttpResponseHandler(){
+			@Override
+			public void onSuccess(int statusCode, Header[] headers, JSONObject response) {
+				// If the response is JSONObject instead of expected JSONArray
+				Log.d("RESETBODY", "success:" + response);
+				actTrainCount = 0;
+				nextBtn.hide();
+
+			}
+
+			@Override
+			public void onFailure(int statusCode, Header[] headers, Throwable throwable,
+								  JSONObject errorResponse){
+				// Pull out the first event on the public timeline
+				Log.d("RESETBODY", "error:" + errorResponse);
+			}
+
+			@Override
+			public void onFailure(int statusCode, Header[] headers, String responseString, Throwable throwable) {
+				Log.d("RESETBODY", "error1:" + responseString);
+			}
+		});
 	}
 
 	private void setTimeOutHandler(){
@@ -579,6 +611,7 @@ public class MonitoringFragment extends Fragment implements SensorEventListener 
 					UtilsManager.writeFile(activity, (activityCount - 1) + ".csv", createCSVStringList(), false);
 					nameEditText.setEnabled(false);
 					postActivities();
+					nextBtn.show();
 					activityBtn.setText(R.string.reset);
 					monitoringState = 2;
 				}

@@ -11,4 +11,6 @@
     <string name="error">error</string>
     <string name="extraction_title">Extract Features</string>
     <string name="extraction_body">The Server is currently doing feature extraction...</string>
+    <string name="feature_extraction_txt">Please click on the right button at the bottom to extract your features!</string>
+    <string name="features_extracted">You have already extracted your features!</string>
 </resources>

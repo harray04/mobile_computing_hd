@@ -23,6 +23,16 @@ def set_flag(count):
         'act_count' : count
     })
 
+
+def reset_flag():
+    init_app()
+    root = db.reference()
+    # Add a new user under /users.
+    root.child('KNN').set({
+        'is_ready' : False,
+        'act_count' : 0
+    })
+
 def get_flag():
     init_app()
     root = db.reference('KNN')
@@ -34,7 +44,8 @@ def get_flag():
 def set_activites(json):
     init_app()
     root = db.reference()
-    count = 0
+    count = len(json)
+    set_flag(count)
     root.child('Activities').set(json)
 
 def get_activities():
