@@ -31,7 +31,7 @@ def smoothen_values(csvReader):
         m = m_smooth
     return m
 
-def stft(x, fftsize=64, overlap=2):
+def stft(x, fftsize=16, overlap=2):
     retVal = []
     if len(x) <= fftsize:
         w = scipy.hanning(len(x)+1)[:-1]
@@ -53,7 +53,7 @@ def calc_energy(m):
         energy_signal.append(np.sum(np.power(abs(stft_signal[i]),2)))
     return energy_signal
 
-def feature(x, fftsize=64, overlap=2):
+def feature(x, fftsize=16, overlap=2):
     meanamp = []
     maxamp = []
     minamp = []

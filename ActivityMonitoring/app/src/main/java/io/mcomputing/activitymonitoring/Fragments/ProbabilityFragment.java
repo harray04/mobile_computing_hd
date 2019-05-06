@@ -54,7 +54,7 @@ public class ProbabilityFragment extends Fragment implements SensorEventListener
 	private FragmentActivity activity;
 	private SensorManager mSensorManager;
 	private Sensor mAcceleroMeter;
-	private final int MAX_SENSOR_VALUES = 64;
+	private final int MAX_SENSOR_VALUES = 16;
 	private int countSensorValues = 0;
 	private List<String> csvSensorValues = new ArrayList<>();
 	private MonitoringAdapter adapter;
@@ -93,7 +93,7 @@ public class ProbabilityFragment extends Fragment implements SensorEventListener
 
 					TextView acc_tv = view.findViewById(R.id.accuracy_tv);
 					acc_tv.setVisibility(View.VISIBLE);
-					double acc = knn.knn(filePath1, filePath2, 12);
+					double acc = knn.knn(filePath1, filePath2, 6);
 					acc_tv.setText("Accuracy: " + String.valueOf(acc) + '%');
 				}
 			});
@@ -335,7 +335,7 @@ public class ProbabilityFragment extends Fragment implements SensorEventListener
 						if(train_features.exists()){
 							String data = response.getString("data");
 							TestRecord testRecord = FileManager.createNewTestRecord(data);
-							HashMap<Integer, Double> knn_prob = knn.knn_predict(filePath, testRecord, 12);
+							HashMap<Integer, Double> knn_prob = knn.knn_predict(filePath, testRecord, 6);
 							if(knn_prob != null) {
 								adapter.setItems(knn_prob);
 							}
