@@ -93,8 +93,9 @@ public class ProbabilityFragment extends Fragment implements SensorEventListener
 
 					TextView acc_tv = view.findViewById(R.id.accuracy_tv);
 					acc_tv.setVisibility(View.VISIBLE);
-					double acc = knn.knn(filePath1, filePath2, 6);
+					double acc = knn.knn(filePath1, filePath2, 12);
 					acc_tv.setText("Accuracy: " + String.valueOf(acc) + '%');
+					initSensors();
 				}
 			});
 					//  updateDb(timestamp,localFile.toString(),positio
@@ -272,7 +273,6 @@ public class ProbabilityFragment extends Fragment implements SensorEventListener
 						adapter = new MonitoringAdapter(activity, activityModels);
 						ListView itemsListView  = (ListView) view.findViewById(R.id.probability_listview);
 						itemsListView.setAdapter(adapter);
-						initSensors();
 					}
 
 				} catch (JSONException e) {
@@ -335,7 +335,7 @@ public class ProbabilityFragment extends Fragment implements SensorEventListener
 						if(train_features.exists()){
 							String data = response.getString("data");
 							TestRecord testRecord = FileManager.createNewTestRecord(data);
-							HashMap<Integer, Double> knn_prob = knn.knn_predict(filePath, testRecord, 6);
+							HashMap<Integer, Double> knn_prob = knn.knn_predict(filePath, testRecord, 12);
 							if(knn_prob != null) {
 								adapter.setItems(knn_prob);
 							}
