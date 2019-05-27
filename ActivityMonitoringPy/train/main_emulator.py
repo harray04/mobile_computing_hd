@@ -2,7 +2,7 @@
 import flask
 from main import train
 
-app = flask.Flask('functions')
+app = flask.Flask(__name__)
 methods = ['GET', 'POST', 'PUT', 'DELETE']
 
 @app.route('/train', methods=methods)

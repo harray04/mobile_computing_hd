@@ -1,18 +1,22 @@
 import os
-from google.cloud import storage
 import csv
 import firebase_admin
 from firebase_admin import db
 from firebase_admin import credentials
+from firebase_admin import storage
 from firebase_admin.credentials import Certificate
 
 
-os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = './credo.json'
+#os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = './credo.json'
 
 def init_app():
     if (not len(firebase_admin._apps)):
         cred = credentials.Certificate('./credo.json')        
-        fA = firebase_admin.initialize_app(cred, {'databaseURL': 'https://coinz-c5130.firebaseio.com'})
+        fA = firebase_admin.initialize_app(cred, {
+            'databaseURL': 'https://coinz-c5130.firebaseio.com',
+            'storageBucket': 'coinz-c5130.appspot.com'
+            })
+
 
 def set_trained(trained_body):
     init_app()
@@ -68,12 +72,12 @@ def get_activities():
     return activities
    
 
-bucket_name = 'coinz-c5130.appspot.com'
 def download_reader(bucketName):
+    init_app()
     source_blob_name = bucketName + '.csv'
     #DOWNLOr
-    storage_client = storage.Client()
-    bucket = storage_client.get_bucket(bucket_name)
+    #storage_client = storage.Client()
+    bucket = storage.bucket()
     blob = bucket.get_blob(source_blob_name)
     fileData = blob.download_as_string()
     strindData = fileData.decode('UTF-8')
@@ -86,14 +90,16 @@ def string_to_csv_reader(strindData):
     return reader
 
 def upload_file(fileName):
-    client = storage.Client()
-    bucket = client.get_bucket(bucket_name)
+    #client = storage.Client()
+    init_app()
+    bucket = storage.bucket()
     blob = bucket.blob(fileName)
     blob.upload_from_filename(fileName)
 
 
 def upload_string(fileName, fileData):
-    client = storage.Client()
-    bucket = client.get_bucket(bucket_name)
+    init_app()
+    #client = storage.Client()
+    bucket = storage.bucket()
     blob = bucket.blob(fileName)
     blob.upload_from_string(fileData)

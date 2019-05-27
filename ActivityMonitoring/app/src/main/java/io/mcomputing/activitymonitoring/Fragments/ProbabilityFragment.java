@@ -15,13 +15,10 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ListView;
-import android.widget.TextClock;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.tasks.OnCompleteListener;
-import com.google.android.gms.tasks.OnFailureListener;
-import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.android.gms.tasks.Tasks;
 import com.google.firebase.storage.FileDownloadTask;
@@ -39,7 +36,9 @@ import java.util.HashMap;
 import java.util.List;
 
 import cz.msebera.android.httpclient.Header;
+import io.mcomputing.activitymonitoring.Activities.MainActivity;
 import io.mcomputing.activitymonitoring.Adapters.MonitoringAdapter;
+import io.mcomputing.activitymonitoring.Helpers.DeleteCallback;
 import io.mcomputing.activitymonitoring.Helpers.FileManager;
 import io.mcomputing.activitymonitoring.Helpers.TestRecord;
 import io.mcomputing.activitymonitoring.Helpers.knn;
@@ -60,8 +59,9 @@ public class ProbabilityFragment extends Fragment implements SensorEventListener
 	private MonitoringAdapter adapter;
 	private int trainActCount = 0;
 	private boolean ready = false;
+	private View mapBtn;
+	private boolean isRegistered = false;
 
-	private Object notifyObject = new Object();
 	@Override
 	public View onCreateView(@NonNull LayoutInflater inflater,
 							 ViewGroup container, Bundle savedInstanceState) {
@@ -69,10 +69,11 @@ public class ProbabilityFragment extends Fragment implements SensorEventListener
 
 		view = inflater.inflate(R.layout.probability_layout, null);
 		activity = getActivity();
+		ready = false;
 		Bundle bundle = getArguments();
 		if(bundle != null)
 			trainActCount = bundle.getInt("act_count");
-		setBackBtn();
+		setBtns();
 		setTrainFeature();
 		initList();
 		getAccuracy();
@@ -82,20 +83,37 @@ public class ProbabilityFragment extends Fragment implements SensorEventListener
 
 	private void getAccuracy(){
 		if(ready){
+			final ProgressDialog dialog = ProgressDialog.show(activity, getString(R.string.train_knn),
+					getString(R.string.train_knn_body), true);
 			Task<FileDownloadTask.TaskSnapshot> task1 = UtilsManager.downloadFile(activity, "train_features.csv");
 			Task<FileDownloadTask.TaskSnapshot> task2 = UtilsManager.downloadFile(activity, "test_features.csv");
 
 			Tasks.whenAll(task1, task2).addOnCompleteListener(new OnCompleteListener<Void>() {
 				@Override
 				public void onComplete(@NonNull Task<Void> task) {
-					String filePath1 = activity.getFilesDir().getPath() + "/Final/train_features.csv";
-					String filePath2 = activity.getFilesDir().getPath() + "/Final/test_features.csv";
+					final String filePath1 = activity.getFilesDir().getPath() + "/Final/train_features.csv";
+					final String filePath2 = activity.getFilesDir().getPath() + "/Final/test_features.csv";
 
-					TextView acc_tv = view.findViewById(R.id.accuracy_tv);
+					final TextView acc_tv = view.findViewById(R.id.accuracy_tv);
 					acc_tv.setVisibility(View.VISIBLE);
-					double acc = knn.knn(filePath1, filePath2, 12);
-					acc_tv.setText("Accuracy: " + String.valueOf(acc) + '%');
-					initSensors();
+					new Thread(new Runnable() {
+						@Override
+						public void run() {
+							final double acc = knn.knn(filePath1, filePath2, 12);
+							activity.runOnUiThread(new Runnable() {
+								@Override
+								public void run() {
+									acc_tv.setText("Accuracy: " + String.valueOf(acc) + '%');
+									initSensors();
+									dialog.dismiss();
+									mapBtn.setVisibility(View.VISIBLE);
+								}
+							});
+
+						}
+					}).start();
+
+
 				}
 			});
 					//  updateDb(timestamp,localFile.toString(),positio
@@ -163,9 +181,26 @@ public class ProbabilityFragment extends Fragment implements SensorEventListener
 							ready = success;
 							if (success) {
 								dialog.dismiss();
-								Toast.makeText(activity,
-										ProbabilityFragment.this.getString(R.string.features_extracted),
-										Toast.LENGTH_SHORT).show();
+								DeleteFeaturesDialog deleteFeaturesDialog = DeleteFeaturesDialog.newInstance(getString(R.string.delete_trained_features), getString(R.string.delete_trained_features_body), new DeleteCallback() {
+									@Override
+									public void onDeleted() {
+										Toast.makeText(activity,
+												ProbabilityFragment.this.getString(R.string.delete_features_success),
+												Toast.LENGTH_SHORT).show();
+										mSensorManager.unregisterListener(ProbabilityFragment.this);
+										mapBtn.setVisibility(View.GONE);
+										final TextView acc_tv = view.findViewById(R.id.accuracy_tv);
+										acc_tv.setVisibility(View.GONE);
+									}
+
+									@Override
+									public void onDeletedFailed() {
+										Toast.makeText(activity,
+												ProbabilityFragment.this.getString(R.string.delete_features_failed),
+												Toast.LENGTH_SHORT).show();
+									}
+								});
+								deleteFeaturesDialog.show(((MainActivity) activity).getSupportFragmentManager(), DeleteFeaturesDialog.TAG);
 							}else {
 								startFeatureExtraction(dialog);
 							}
@@ -239,12 +274,20 @@ public class ProbabilityFragment extends Fragment implements SensorEventListener
 		});
 	}
 
-	private void setBackBtn(){
+	private void setBtns(){
 		View backBtn = view.findViewById(R.id.back_btn);
 		backBtn.setOnClickListener(new View.OnClickListener() {
 			@Override
 			public void onClick(View v) {
 				activity.onBackPressed();
+			}
+		});
+
+		mapBtn = view.findViewById(R.id.map_btn);
+		mapBtn.setOnClickListener(new View.OnClickListener() {
+			@Override
+			public void onClick(View v) {
+				((MainActivity)activity).loadFragment(R.id.content_main, LocalizationFragment.newInstance(), LocalizationFragment.TAG);
 			}
 		});
 	}
@@ -309,6 +352,7 @@ public class ProbabilityFragment extends Fragment implements SensorEventListener
 			if (mAcceleroMeter != null) {
 				mSensorManager.registerListener(this, mAcceleroMeter,
 						SensorManager.SENSOR_DELAY_NORMAL);
+				isRegistered = true;
 			}
 		}
 	}
@@ -316,7 +360,10 @@ public class ProbabilityFragment extends Fragment implements SensorEventListener
 	@Override
 	public void onDestroyView(){
 		super.onDestroyView();
-		mSensorManager.unregisterListener(this);
+		if(isRegistered) {
+			isRegistered = false;
+			mSensorManager.unregisterListener(this);
+		}
 	}
 
 	private void getFeatureValue(File file){

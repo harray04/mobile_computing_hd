@@ -29,10 +29,8 @@ import com.github.mikephil.charting.data.LineData;
 import com.github.mikephil.charting.data.LineDataSet;
 import com.github.mikephil.charting.formatter.ValueFormatter;
 import com.github.mikephil.charting.interfaces.datasets.ILineDataSet;
-import com.google.firebase.storage.UploadTask;
 import com.loopj.android.http.AsyncHttpResponseHandler;
 import com.loopj.android.http.JsonHttpResponseHandler;
-import com.loopj.android.http.RequestParams;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -55,8 +53,8 @@ import io.mcomputing.activitymonitoring.UtilsManager;
 public class MonitoringFragment extends Fragment implements SensorEventListener {
 	public static final String TAG = "MonitoringFragment";
 	public static final int MAX_VISIBLE_VALUE_COUNT = 3;
-	private static final int MAX_ACTIVITY_COUNT = 4;
-	private static final int MAX_MONITORING_TIME = 5; // in minutes
+	private static final int MAX_ACTIVITY_COUNT = 2;
+	private static final int MAX_MONITORING_TIME = 2; // in minutes
 	private LineChart multiLineChart;
 	private SensorManager mSensorManager;
 	//private Sensor mSensorProximity;
@@ -100,6 +98,7 @@ public class MonitoringFragment extends Fragment implements SensorEventListener 
 		activityBtn.setClickable(false);
 		return view;
 	}
+
 
 
 
@@ -216,7 +215,7 @@ public class MonitoringFragment extends Fragment implements SensorEventListener 
 	}
 
 	private void resetTrain(){
-		JSONAsyncTask.resetTrain(new JsonHttpResponseHandler(){
+		JSONAsyncTask.resetAll(new JsonHttpResponseHandler(){
 			@Override
 			public void onSuccess(int statusCode, Header[] headers, JSONObject response) {
 				// If the response is JSONObject instead of expected JSONArray

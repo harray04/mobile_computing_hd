@@ -12,5 +12,12 @@
     <string name="extraction_title">Extract Features</string>
     <string name="extraction_body">The Server is currently doing feature extraction...</string>
     <string name="feature_extraction_txt">Please click on the right button at the bottom to extract your features!</string>
-    <string name="features_extracted">You have already extracted your features!</string>
+    <string name="delete_features_success">Features have been deleted successfully!</string>
+    <string name="train_knn">Train KNN</string>
+    <string name="train_knn_body">Your knn will be fed with your recorded data, please wait until this dialog vanishes...</string>
+    <string name="delete_trained_features">Delete trained features</string>
+    <string name="cancel_txt">Abbrechen</string>
+    <string name="delete_txt">Delete</string>
+    <string name="delete_trained_features_body">Do you really want to delete your feature files?</string>
+    <string name="delete_features_failed">Failed to delete feature on server!</string>
 </resources>

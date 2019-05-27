@@ -53,12 +53,18 @@ def train(request):
         if count == 'fit':
             if request.method == 'GET':
                 return flask.jsonify(utils.get_trained()), 200
-        if count == 'reset':
+        if count == 'resetAll':
             if request.method == 'PUT':
                 utils.set_trained({
                     'is_ready': False
                 })
                 retVal = utils.reset_flag()
+                return flask.jsonify({'success': True}), 200
+        if count == 'resetExt':
+            if request.method == 'PUT':
+                utils.set_trained({
+                    'is_ready': False
+                })
                 return flask.jsonify({'success': True}), 200
         if count == 'act':
             if request.method == 'GET':
@@ -95,13 +101,15 @@ def train(request):
                     return flask.jsonify({'success': True, 'data': file}), 200 #, 'prob': probability}), 200
                 else:
                     return 'Wrong file extension', 400
-
-        if int(count) <= 0:
-            return 'No number supported', 400
-        elif int(count) > 0:
-            if request.method == 'GET':
-                return train_feature(int(count))
-        else:
-            return 'Method not supported', 405
+        try:
+            if int(count) <= 0:
+                return 'No number supported', 400
+            elif int(count) > 0:
+                if request.method == 'GET':
+                    return train_feature(int(count))
+            else:
+                return 'Method not supported', 405
+        except ValueError:
+               return 'Method not supported or ValueError', 400 
 
     return 'URL not found', 404
